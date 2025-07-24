@@ -31,7 +31,8 @@ let fixture: MintFixture = MintFixture::new(
 );
 
 // make sure that the blockhash does not expire!
-let mint: Pubkey = fixture.create_and_initialize_mint_without_freeze(9, &blockhash).await?;
+let decimals: u8 = 9;
+let mint: Pubkey = fixture.create_and_initialize_mint_without_freeze(decimals, &blockhash).await?;
 let ata: Pubkey = fixture.create_and_initialize_ata(&mint, &blockhash).await?;
-fixture.mint_to_ata(&mint, &ata, 1_000_000_000, &blockhash).await?;
+fixture.mint_to_ata(&mint, &ata, 1_000_000_000 * 10u64.pow(decimals as u32), &blockhash).await?;
 ```

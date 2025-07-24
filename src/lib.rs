@@ -146,7 +146,7 @@ impl<'a> MintFixture<'a> {
         );
         let mut create_and_initiliaze_tx: Transaction = Transaction::new_unsigned(message);
 
-        create_and_initiliaze_tx.sign(&[self.payer], *latest_blockhash);
+        create_and_initiliaze_tx.sign(&[self.payer, &mint_keypair], *latest_blockhash);
         self.process_transaction(create_and_initiliaze_tx).await?;
 
         Ok(mint_pkey)
@@ -228,6 +228,63 @@ impl<'a> MintFixture<'a> {
                 client.process_transaction(tx).await?;
             }
         }
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use solana_sdk::{
+        sysvar::SysvarId,
+        signature::Signature
+    };
+
+
+    #[tokio::test]
+    async fn test_all_methods() -> Result<(), Box<dyn std::error::Error>> {
+        let cluster_url: String = String::from("http://127.0.0.1:8899");
+        let rpc_client: RpcClient = RpcClient::new(cluster_url);
+
+        let payer: Keypair = Keypair::new();
+        let payer_pkey: Pubkey = payer.pubkey();
+
+        let aridrop_sig: Signature = rpc_client.request_airdrop(&payer_pkey, 5_000_000_000).await?;
+        loop {
+            if rpc_client.confirm_transaction(&aridrop_sig).await? {
+                break;
+            }
+        }
+        println!("Airdrop 5 SOL to payer - success");
+
+        let rent_sysvar = rpc_client.get_account(&Rent::id())
+            .await?
+            .deserialize_data::<Rent>()?;
+
+        let mint_fixture: MintFixture = MintFixture::new(
+            MintFixtureClient::Rpc(&rpc_client),
+            &payer,
+            &payer_pkey,
+            &rent_sysvar
+        );
+        
+        let decimals: u8 = 9;
+
+        // test mint creation
+        let latest_blockhash: Hash = rpc_client.get_latest_blockhash().await?;
+        let mint: Pubkey = mint_fixture.create_and_initialize_mint_without_freeze(decimals, &latest_blockhash).await?;
+        println!("Create & Init Mint Account - success. Pubkey: {}", mint);
+        
+        // test ata creation
+        let latest_blockhash: Hash = rpc_client.get_latest_blockhash().await?;
+        let ata: Pubkey = mint_fixture.create_and_initialize_ata(&mint, &latest_blockhash).await?;
+        println!("Create & Init ATA - success. Pubkey: {}", ata);
+
+        // test mint ot ata
+        let latest_blockhash: Hash = rpc_client.get_latest_blockhash().await?;
+        mint_fixture.mint_to_ata(&mint, &ata, 1_000_000_000 * 10u64.pow(decimals as u32), &latest_blockhash).await?;
+        println!("Mint to ATA - success");
 
         Ok(())
     }
