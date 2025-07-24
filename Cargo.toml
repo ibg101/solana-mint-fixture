@@ -1,6 +1,6 @@
 [package]
 name = "solana-mint-fixture"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Lightweight utility library for creating SPL Token-2022 mints and ATAs in BanksClient tests and RpcClient environments."
 readme = "README.md"
