@@ -7,7 +7,7 @@ use solana_sdk::{
     program_error::ProgramError,
     message::Message,
     system_program::ID as SYSTEM_PROGRAM_ID,
-    system_transaction,
+    system_instruction,
     transaction::Transaction,
     instruction::{Instruction, AccountMeta},
     signer::keypair::Keypair,
@@ -106,6 +106,8 @@ impl<'a> MintFixture<'a> {
         Self { client, payer, payer_pkey, rent }
     }
     
+    /// Returns created Mint Account Pubkey.
+    /// 
     /// If `freeze_authority` is None, consider using `create_and_initialize_mint_without_freeze` instead.
     pub async fn create_and_initialize_mint(
         &self, 
@@ -113,43 +115,48 @@ impl<'a> MintFixture<'a> {
         freeze_authority: Option<&Pubkey>,
         latest_blockhash: &Hash
     ) -> Result<Pubkey, MintFixtureError> {
-        // 1. create account using system program
+        // 1. Craft Mint Account ix using System Program
         let mint_keypair: Keypair = Keypair::new();
+        let mint_pkey: Pubkey = mint_keypair.pubkey();
 
-        let create_tx: Transaction = system_transaction::create_account(
-            self.payer, 
-            &mint_keypair, 
-            *latest_blockhash, 
+        let create_mint_ix: Instruction = system_instruction::create_account(
+            self.payer_pkey, 
+            &mint_pkey, 
             self.rent.minimum_balance(Mint::LEN), 
             Mint::LEN as u64, 
             &SPL_TOKEN_2022_ID
         );
 
-        self.process_transaction(create_tx).await?;
-
-        // 2. initialize Mint account using SPL program
-        // 2.1 craft initialize mint ix & tx
+        // 2. Craft Initialize Mint Account ix using SPL program
         let initialize_mint_ix: Instruction = spl_token_2022_ix::initialize_mint(
             &SPL_TOKEN_2022_ID, 
-            &mint_keypair.pubkey(), 
+            &mint_pkey, 
             self.payer_pkey, 
             freeze_authority, 
             mint_decimals
         )?;
-        let message: Message = Message::new(&[initialize_mint_ix], Some(self.payer_pkey));
-        let mut initialize_mint_tx: Transaction = Transaction::new_unsigned(message);
-        
-        // 2.2 sign & send tx
-        initialize_mint_tx.sign(&[self.payer], *latest_blockhash);
-        self.process_transaction(initialize_mint_tx).await?;
 
-        Ok(mint_keypair.pubkey())
+        // 3. Craft atomic tx & sign and send it
+        let message: Message = Message::new(
+            &[
+                create_mint_ix,
+                initialize_mint_ix
+            ], 
+            Some(self.payer_pkey)
+        );
+        let mut create_and_initiliaze_tx: Transaction = Transaction::new_unsigned(message);
+
+        create_and_initiliaze_tx.sign(&[self.payer], *latest_blockhash);
+        self.process_transaction(create_and_initiliaze_tx).await?;
+
+        Ok(mint_pkey)
     }
 
     pub async fn create_and_initialize_mint_without_freeze(&self, mint_decimals: u8, latest_blockhash: &Hash) -> Result<Pubkey, MintFixtureError> {
         Self::create_and_initialize_mint(&self, mint_decimals, None, latest_blockhash).await
     }
 
+    /// Returns created ATA Pubkey.
     pub async fn create_and_initialize_ata(&self, mint_pkey: &Pubkey, latest_blockhash: &Hash) -> Result<Pubkey, MintFixtureError> {
         // If `spl_associated_token_account_client` will be added, this must be removed.
         let ata_pda: Pubkey = Pubkey::find_program_address(
@@ -183,7 +190,8 @@ impl<'a> MintFixture<'a> {
 
         Ok(ata_pda)
     }
-
+    
+    /// All this fn does is **minting** new **tokens** with the given Mint Account Pubkey **to** the provided **ATA**.
     pub async fn mint_to_ata(
         &self, 
         mint_pkey: &Pubkey, 

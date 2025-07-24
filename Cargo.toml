@@ -2,6 +2,10 @@
 name = "solana-mint-fixture"
 version = "0.1.0"
 edition = "2021"
+readme = "README.md"
+repository = "https://github.com/ibg101/solana-mint-fixture"
+license = "MIT OR Apache-2.0"
+keywords = ["mint-fixture", "solana-mint", "solana-mint-helpers", "associated-token-account", "spl-utils", "solana-token-utils", "spl-token-utils"]
 authors = ["Ivan Bets <ivan.bets17@gmail.com>"]
 
 [dependencies]
