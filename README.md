@@ -16,9 +16,14 @@
 Add to your `Cargo.toml`:
 
 ```toml
-solana-mint-fixture = { version = "0.1.0", features = ["banks"] }  # Enables BanksClient (Disabled by default)
-solana-mint-fixture = { version = "0.1.0", features = ["rpc"] }    # Enables RpcClient   (Disabled by default)
-solana-mint-fixture = { version = "0.1.0", features = ["full"] }   # Enable both         (Disabled by default)
+# Enables only `banks` feature
+solana-mint-fixture = { version = "0.1.0", default-features = false, features = ["banks"] }
+
+# Enables only `rpc` feature
+solana-mint-fixture = { version = "0.1.0", default-features = false, features = ["rpc"] }
+
+# Enables `full` features (by default)
+solana-mint-fixture = "0.1.0"
 ```
 
 ## Example

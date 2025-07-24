@@ -2,10 +2,11 @@
 name = "solana-mint-fixture"
 version = "0.1.0"
 edition = "2021"
+description = "Lightweight utility library for creating SPL Token-2022 mints and ATAs in BanksClient tests and RpcClient environments."
 readme = "README.md"
 repository = "https://github.com/ibg101/solana-mint-fixture"
 license = "MIT OR Apache-2.0"
-keywords = ["mint-fixture", "solana-mint", "solana-mint-helpers", "associated-token-account", "spl-utils", "solana-token-utils", "spl-token-utils"]
+keywords = ["spl-token", "solana", "mint-fixture", "testing", "ata"]
 authors = ["Ivan Bets <ivan.bets17@gmail.com>"]
 
 [dependencies]
@@ -15,7 +16,7 @@ solana-program-test = { version = "2.3.1", optional = true }
 solana-client = { version = "2.3.1", optional = true }
 
 [dev-dependencies] 
-tokio = { version = "*", features = ["macros", "rt-multi-thread"]}
+tokio = { version = "1.46.1", features = ["macros", "rt-multi-thread"]}
 
 [features]
 default = ["full"]
